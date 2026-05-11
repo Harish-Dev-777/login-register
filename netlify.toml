@@ -1,0 +1,5 @@
+# SPA fallback — ensures React Router works on page refresh
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
