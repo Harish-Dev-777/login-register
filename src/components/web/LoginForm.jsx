@@ -34,8 +34,22 @@ const LoginForm = ({ onToggleView, onLoginSuccess }) => {
     try {
       const users = await getAllUsers()
       console.log(`[Login] Total registered users: ${users.length}`)
+      // Debug: log first 3 users to see actual field structure
+      console.log("[Login] Sample users from API:", JSON.stringify(users.slice(-3), null, 2))
+      console.log("[Login] Input mobile:", JSON.stringify(data.mobile), "Input password:", JSON.stringify(data.password))
 
-      const user = users.find(u => u.mobile === data.mobile && u.password === data.password)
+      // Find user by matching mobile or phone (as string) and password
+      const user = users.find(u => {
+        const userMobile = String(u.mobile || u.phone || "").trim();
+        const inputMobile = String(data.mobile).trim();
+        const passwordMatch = String(u.password || "").trim() === String(data.password).trim();
+        const mobileMatch = userMobile === inputMobile;
+        // Log each comparison for the last few users
+        if (userMobile === inputMobile || u.name) {
+          console.log(`[Login] Comparing user "${u.name}": mobile="${userMobile}" vs "${inputMobile}" (${mobileMatch}), password="${u.password}" vs "${data.password}" (${passwordMatch})`)
+        }
+        return mobileMatch && passwordMatch;
+      })
       console.log("[Login] Matching user found:", !!user)
 
       if (user) {

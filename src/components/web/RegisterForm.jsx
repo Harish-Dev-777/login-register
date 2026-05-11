@@ -23,11 +23,10 @@ const RegisterForm = ({ onToggleView }) => {
       try {
         const users = await getAllUsers()
         setAllUsers(users)
-        window.allUsers = users // Expose to console as a "command"
-        console.log("All users in database (accessible via 'window.allUsers'):")
-        console.table(users)
+        window.allUsers = users
+        console.log("[Register] All Users Object:", users)
       } catch (err) {
-        console.error("Failed to fetch users:", err)
+        console.error("[Register] Failed to fetch users:", err)
       }
     }
     fetchUsers()
@@ -91,16 +90,55 @@ const RegisterForm = ({ onToggleView }) => {
       setTimeout(() => onToggleView(), 1500)
     } catch (err) {
       console.error("[Register] Error during registration:", err)
-      setApiError('Unable to process registration. Please check your connection or try again later.')
+      const errorMsg = err.response?.data?.message || err.message || 'Unable to process registration.'
+      setApiError(`${errorMsg}. Please try again later.`)
     }
   }
 
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
+      // Basic validation for image size (e.g., warn if > 5MB before processing)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.warning("Large Image Detected", {
+          description: "Image is large. We will compress it for better performance.",
+        })
+      }
+
       const reader = new FileReader()
       reader.onloadend = () => {
-        setImagePreview(reader.result)
+        const img = new Image()
+        img.src = reader.result
+        img.onload = () => {
+          // Resize using canvas to keep the base64 string small
+          const canvas = document.createElement("canvas")
+          const MAX_WIDTH = 400
+          const MAX_HEIGHT = 400
+          let width = img.width
+          let height = img.height
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width
+              width = MAX_WIDTH
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height
+              height = MAX_HEIGHT
+            }
+          }
+
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext("2d")
+          ctx.drawImage(img, 0, 0, width, height)
+          
+          // Use a lower quality to ensure it fits under API limits
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7)
+          setImagePreview(compressedBase64)
+          console.log("[Register] Image compressed. Length:", compressedBase64.length)
+        }
       }
       reader.readAsDataURL(file)
     }

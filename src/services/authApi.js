@@ -11,8 +11,29 @@ const API_URL = `${env.VITE_API_BASE_URL}/${env.VITE_REGISTRATION_ENDPOINT}`
 export const getAllUsers = async () => {
   console.log("[authApi] getAllUsers - URL:", API_URL)
   const response = await axios.get(API_URL)
-  console.log("[authApi] Total registered users:", response.data.length)
-  return response.data
+  console.log("[authApi] Raw response.data type:", typeof response.data, Array.isArray(response.data))
+  console.log("[authApi] Raw response.data keys:", response.data && typeof response.data === 'object' ? Object.keys(response.data) : 'N/A')
+  
+  // Handle both: API might return an array directly OR { data: [...], Count: N }
+  let rawUsers
+  if (Array.isArray(response.data)) {
+    rawUsers = response.data
+  } else if (response.data && Array.isArray(response.data.data)) {
+    rawUsers = response.data.data
+  } else {
+    console.error("[authApi] Unexpected response format:", response.data)
+    rawUsers = []
+  }
+  
+  const users = rawUsers.map(u => ({
+    ...u,
+    image: u.profile || u.image
+  }))
+  console.log("[authApi] Total registered users:", users.length)
+  if (users.length > 0) {
+    console.log("[authApi] Sample user fields:", Object.keys(users[0]))
+  }
+  return users
 
 }
 
@@ -23,7 +44,17 @@ export const getAllUsers = async () => {
  */
 export const registerUser = async (userData) => {
   console.log("[authApi] registerUser - Posting new user...")
-  const response = await axios.post(API_URL, userData)
+  // Ensure we send field names the API expects
+  const payload = {
+    name: userData.name,
+    email: userData.email,
+    mobile: userData.mobile,
+    phone: userData.mobile, // Mapping mobile to phone just in case
+    password: userData.password,
+    confirmPassword: userData.password, // Some APIs expect this
+    profile: userData.image || ""
+  }
+  const response = await axios.post(API_URL, payload)
   console.log("[authApi] registerUser - Response:", response.data)
   return response
 }
