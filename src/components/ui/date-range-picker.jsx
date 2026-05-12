@@ -118,6 +118,29 @@ export const DateRangePicker = ({ value, onChange, className }) => {
     setIsSelecting(false);
   };
 
+  const [view, setView] = useState("calendar"); // "calendar", "months", "years"
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 25 }, (_, i) => currentYear - 12 + i);
+
+  const handleMonthChange = (mIndex) => {
+    const newDate = new Date(currentMonth);
+    newDate.setMonth(mIndex);
+    setCurrentMonth(newDate);
+    setView("calendar");
+  };
+
+  const handleYearChange = (year) => {
+    const newDate = new Date(currentMonth);
+    newDate.setFullYear(year);
+    setCurrentMonth(newDate);
+    setView("calendar");
+  };
+
   const displayText = value?.start ? formatRange(value.start, value.end) : "";
 
   return (
@@ -125,16 +148,16 @@ export const DateRangePicker = ({ value, onChange, className }) => {
       {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => { setIsOpen(!isOpen); setView("calendar"); }}
         className={clsx(
-          "flex items-center gap-2 h-10 px-3 text-sm border border-white/10 bg-background rounded-none transition-all duration-200",
+          "flex items-center gap-2 h-10 px-3 text-sm border border-white/10 bg-background rounded-none transition-all duration-200 w-full",
           "hover:border-primary/50 focus:border-primary/50 focus:outline-none",
           isOpen && "border-primary/50",
           displayText ? "text-white" : "text-gray-500"
         )}
       >
         <CalendarIcon />
-        <span className="truncate min-w-[120px] text-left">
+        <span className="truncate flex-1 text-left">
           {displayText || "Filter by date"}
         </span>
         {displayText && (
@@ -146,17 +169,20 @@ export const DateRangePicker = ({ value, onChange, className }) => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-12 right-0 z-50 glass-card border border-white/10 rounded-none shadow-2xl shadow-black/50 flex animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className={clsx(
+          "absolute top-12 right-0 z-[60] glass-card border border-white/10 rounded-none shadow-2xl shadow-black/50 flex flex-col md:flex-row animate-in fade-in slide-in-from-top-2 duration-200",
+          "w-[calc(100vw-2rem)] sm:w-auto min-w-[280px]"
+        )}>
           {/* Presets */}
-          <div className="w-40 border-r border-white/10 p-2 flex flex-col gap-0.5">
-            <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold px-2 py-1.5">Quick Select</p>
+          <div className="w-full md:w-40 border-b md:border-b-0 md:border-r border-white/10 p-2 flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-x-visible no-scrollbar">
+            <p className="hidden md:block text-[10px] uppercase tracking-widest text-gray-500 font-bold px-2 py-1.5">Quick Select</p>
             {presets.map((preset) => (
               <button
                 key={preset.label}
                 type="button"
                 onClick={() => handlePreset(preset)}
                 className={clsx(
-                  "text-left text-xs px-2 py-1.5 rounded-sm transition-all duration-150",
+                  "whitespace-nowrap text-left text-xs px-2 py-1.5 rounded-sm transition-all duration-150",
                   value?.start && value?.end &&
                   isSameDay(value.start, preset.start) && isSameDay(value.end, preset.end)
                     ? "bg-primary/20 text-primary font-bold"
@@ -168,70 +194,154 @@ export const DateRangePicker = ({ value, onChange, className }) => {
             ))}
           </div>
 
-          {/* Calendar */}
-          <div className="p-3 w-[260px]">
-            {/* Month nav */}
-            <div className="flex justify-between items-center mb-3">
-              <button type="button" onClick={prevMonth} className="p-1 text-gray-500 hover:text-primary transition-colors">
-                <ChevronLeftIcon />
-              </button>
-              <h3 className="text-sm font-bold text-white font-heading uppercase tracking-wider">
-                {format(currentMonth, "MMMM yyyy")}
-              </h3>
-              <button type="button" onClick={nextMonth} className="p-1 text-gray-500 hover:text-primary transition-colors">
-                <ChevronRightIcon />
-              </button>
-            </div>
-
-            {/* Weekday headers */}
-            <div className="grid grid-cols-7 text-center mb-1">
-              {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
-                <div key={d} className="text-[10px] uppercase tracking-widest text-gray-600 font-bold py-1">{d}</div>
-              ))}
-            </div>
-
-            {/* Days grid */}
-            <div className="grid grid-cols-7 gap-y-0.5">
-              {days.map((d) => {
-                const isStart = value?.start && isSameDay(d, value.start);
-                const isEnd = value?.end && isSameDay(d, value.end);
-                const isHover = hoverDate && isSelecting && isSameDay(d, hoverDate);
-                const inRange =
-                  value?.start &&
-                  ((value.end && isWithinInterval(d, { start: value.start, end: value.end })) ||
-                    (hoverDate && !value.end && (
-                      hoverDate >= value.start
-                        ? isWithinInterval(d, { start: value.start, end: hoverDate })
-                        : isWithinInterval(d, { start: hoverDate, end: value.start })
-                    )));
-
-                return (
-                  <div
-                    key={d.toString()}
+          {/* Calendar & Actions */}
+          <div className="flex flex-col flex-1">
+            <div className="p-3 w-full sm:w-[280px]">
+              {/* Header with Month & Year Toggles */}
+              <div className="flex justify-between items-center mb-3 gap-1">
+                <button type="button" onClick={prevMonth} className="p-1 text-gray-500 hover:text-primary transition-colors shrink-0">
+                  <ChevronLeftIcon />
+                </button>
+                
+                <div className="flex items-center gap-1 flex-1 justify-center">
+                  <button 
+                    type="button"
+                    onClick={() => setView(view === "months" ? "calendar" : "months")}
                     className={clsx(
-                      "flex items-center justify-center",
-                      inRange && !isStart && !isEnd && !isHover && "bg-primary/10"
+                      "text-xs font-bold font-heading uppercase tracking-wider px-2 py-1 rounded-sm transition-all",
+                      view === "months" ? "bg-primary text-black" : "text-white hover:bg-white/10"
                     )}
-                    onMouseEnter={() => { if (value?.start && !value.end) setHoverDate(d); }}
-                    onClick={() => handleDayClick(d)}
                   >
-                    <div className={clsx(
-                      "w-8 h-8 flex items-center justify-center text-xs cursor-pointer rounded-sm transition-all duration-100",
-                      !isSameMonth(d, currentMonth) && "text-gray-700",
-                      isSameMonth(d, currentMonth) && !isStart && !isEnd && !isHover && "text-gray-300 hover:bg-white/10 hover:text-white",
-                      (isStart || isEnd) && "bg-primary text-black font-bold",
-                      isHover && !isStart && "ring-2 ring-primary bg-primary/20 text-primary font-bold",
-                      isToday(d) && !isStart && !isEnd && "text-primary font-bold"
-                    )}>
-                      {format(d, "d")}
-                    </div>
+                    {months[currentMonth.getMonth()].slice(0, 3)}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setView(view === "years" ? "calendar" : "years")}
+                    className={clsx(
+                      "text-xs font-bold font-heading uppercase tracking-wider px-2 py-1 rounded-sm transition-all",
+                      view === "years" ? "bg-primary text-black" : "text-white hover:bg-white/10"
+                    )}
+                  >
+                    {currentMonth.getFullYear()}
+                  </button>
+                </div>
+
+                <button type="button" onClick={nextMonth} className="p-1 text-gray-500 hover:text-primary transition-colors shrink-0">
+                  <ChevronRightIcon />
+                </button>
+              </div>
+
+              {/* View Switcher */}
+              {view === "months" && (
+                <div className="grid grid-cols-5 gap-1 animate-in fade-in zoom-in-95 duration-200">
+                  {months.map((m, i) => (
+                    <button
+                      key={m}
+                      onClick={() => handleMonthChange(i)}
+                      className={clsx(
+                        "text-[10px] uppercase font-bold py-3 rounded-sm transition-all",
+                        currentMonth.getMonth() === i ? "bg-primary text-black" : "text-gray-400 hover:bg-white/5 hover:text-white"
+                      )}
+                    >
+                      {m.slice(0, 3)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {view === "years" && (
+                <div className="grid grid-cols-5 gap-1 animate-in fade-in zoom-in-95 duration-200">
+                  {years.map((y) => (
+                    <button
+                      key={y}
+                      onClick={() => handleYearChange(y)}
+                      className={clsx(
+                        "text-[10px] font-bold py-3 rounded-sm transition-all",
+                        currentMonth.getFullYear() === y ? "bg-primary text-black" : "text-gray-400 hover:bg-white/5 hover:text-white"
+                      )}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {view === "calendar" && (
+                <>
+                  {/* Weekday headers */}
+                  <div className="grid grid-cols-7 text-center mb-1">
+                    {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
+                      <div key={d} className="text-[10px] uppercase tracking-widest text-gray-600 font-bold py-1">{d}</div>
+                    ))}
                   </div>
-                );
-              })}
+
+                  {/* Days grid */}
+                  <div className="grid grid-cols-7 gap-y-0.5">
+                    {days.map((d) => {
+                      const isStart = value?.start && isSameDay(d, value.start);
+                      const isEnd = value?.end && isSameDay(d, value.end);
+                      const isHover = hoverDate && isSelecting && isSameDay(d, hoverDate);
+                      const inRange =
+                        value?.start &&
+                        ((value.end && isWithinInterval(d, { start: value.start, end: value.end })) ||
+                          (hoverDate && !value.end && (
+                            hoverDate >= value.start
+                              ? isWithinInterval(d, { start: value.start, end: hoverDate })
+                              : isWithinInterval(d, { start: hoverDate, end: value.start })
+                          )));
+
+                      return (
+                        <div
+                          key={d.toString()}
+                          className={clsx(
+                            "flex items-center justify-center",
+                            inRange && !isStart && !isEnd && !isHover && "bg-primary/10"
+                          )}
+                          onMouseEnter={() => { if (value?.start && !value.end) setHoverDate(d); }}
+                          onClick={() => handleDayClick(d)}
+                        >
+                          <div className={clsx(
+                            "w-8 h-8 flex items-center justify-center text-xs cursor-pointer rounded-sm transition-all duration-100",
+                            !isSameMonth(d, currentMonth) && "text-gray-700",
+                            isSameMonth(d, currentMonth) && !isStart && !isEnd && !isHover && "text-gray-300 hover:bg-white/10 hover:text-white",
+                            (isStart || isEnd) && "bg-primary text-black font-bold",
+                            isHover && !isStart && "ring-2 ring-primary bg-primary/20 text-primary font-bold",
+                            isToday(d) && !isStart && !isEnd && "text-primary font-bold"
+                          )}>
+                            {format(d, "d")}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="p-3 border-t border-white/10 flex justify-end gap-2 bg-black/20">
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-bold text-muted-foreground hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold bg-primary text-black hover:bg-primary/80 transition-all rounded-sm disabled:opacity-50"
+                disabled={!value?.start}
+              >
+                Apply
+              </button>
             </div>
           </div>
         </div>
       )}
+
+
+
     </div>
   );
 };

@@ -59,7 +59,7 @@ export const registerUser = async (userData) => {
     confirmPassword: userData.password, // Some APIs expect this
     profile: userData.image || "",
     pdfFile: userData.pdfFile || "",
-    registeredAt: registeredAt
+    registeredAt: userData.registeredAt || registeredAt
   }
   const response = await axios.post(API_URL, payload)
   console.log("[authApi] registerUser - Response:", response.data)

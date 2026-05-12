@@ -79,7 +79,8 @@ const RegisterForm = ({ onToggleView }) => {
         mobile: data.mobile,
         password: data.password,
         image: imagePreview,
-        pdfFile: pdfFile
+        pdfFile: pdfFile,
+        registeredAt: new Date().toISOString()
       })
       console.log("[Register] Registration successful!")
 

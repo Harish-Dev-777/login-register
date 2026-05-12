@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from "react";
-import {
-  getAllUsers,
-  updateUser,
-  deleteUser as deleteUserApi,
-} from "@/services/authApi";
+import { getAllUsers, updateUser, deleteUser as deleteUserApi } from "@/services/authApi";
 import { User, LogOut, Eye, Edit, Trash2, Home, ChevronLeft, ChevronRight, FileText, Download, Search } from "lucide-react";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button-1";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import BackButton from "@/components/web/BackButton";
 
 const Dashboard = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,6 +26,7 @@ const Dashboard = ({ user, onLogout }) => {
     mobile: "",
     image: "",
     pdfFile: "",
+    registeredAt: "",
   });
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -39,6 +38,21 @@ const Dashboard = ({ user, onLogout }) => {
   // Search and date filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState({ start: null, end: null });
+
+  // Profile menu state
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileRef = React.useRef(null);
+
+  // Close profile menu on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -69,6 +83,7 @@ const Dashboard = ({ user, onLogout }) => {
       mobile: u.mobile || u.phone || "",
       image: u.image || u.profile || "",
       pdfFile: u.pdfFile || "",
+      registeredAt: u.registeredAt || u.createdAt || u.date || "",
     });
   };
 
@@ -116,22 +131,23 @@ const Dashboard = ({ user, onLogout }) => {
   const parseDate = (dateString) => {
     if (!dateString) return null;
     // Handle dd-mm-yyyy HH:MM:SS format
-    const ddmmMatch = dateString.match(/^(\d{2})-(\d{2})-(\d{4})/);
+    const ddmmMatch = dateString.match(/^(\d{2})-(\d{2})-(\d{4})(?:\s+(\d{2}):(\d{2}):(\d{2}))?/);
     if (ddmmMatch) {
-      return new Date(ddmmMatch[3], ddmmMatch[2] - 1, ddmmMatch[1]);
+      const [_, d, m, y, h, min, s] = ddmmMatch;
+      return new Date(y, m - 1, d, h || 0, min || 0, s || 0);
     }
     const d = new Date(dateString);
     return isNaN(d.getTime()) ? null : d;
   };
 
-  // Format date as dd-Mon-year (e.g. 12-May-2026)
+  // Format date as dd-mm-yyyy (e.g. 12-05-2026)
   const formatDate = (dateString) => {
     if (!dateString) return "—";
     try {
       const date = parseDate(dateString);
       if (!date) return dateString;
       const day = String(date.getDate()).padStart(2, "0");
-      const month = date.toLocaleString("en-US", { month: "short" });
+      const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
       return `${day}-${month}-${year}`;
     } catch (e) {
@@ -185,57 +201,64 @@ const Dashboard = ({ user, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
+      {/* Back Button */}
+      <BackButton onClick={() => navigate("/")} />
+
       {/* Background elements */}
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none z-[1]" />
 
       {/* Header */}
-      <header className="w-full glass-card border-b border-white/10 py-4 px-5 md:px-20 flex items-center justify-between z-10 sticky top-0">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/"
-            className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
-          >
-            <Home className="w-5 h-5" />
-            <span className="font-heading tracking-widest uppercase text-sm hidden md:inline">
-              Back to Home
-            </span>
-          </Link>
-          <div className="h-6 w-px bg-white/10 mx-2 hidden md:block"></div>
-          <h1 className="text-xl font-bold">
-            Better<span className="text-primary">Web</span> Dashboard
-          </h1>
-        </div>
+      <header className="w-full glass-card border-b border-white/10 sticky top-0 z-40 bg-background/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold">
+              Better<span className="text-primary">Web</span> Dashboard
+            </h1>
+          </div>
 
-        {/* User Profile - Top Right */}
-        <div className="flex items-center gap-4">
-          {user && (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium hidden md:inline">
-                  {user.name}
-                </span>
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/30 bg-secondary flex items-center justify-center">
-                  {user.image ? (
-                    <img
-                      src={user.image}
-                      alt={user.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-5 h-5 text-muted-foreground" />
-                  )}
-                </div>
-              </div>
-              <div className="h-6 w-px bg-white/10 mx-1"></div>
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-red-500 transition-colors uppercase font-bold tracking-widest"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden md:inline">Logout</span>
-              </button>
-            </div>
-          )}
+          {/* User Profile - Top Right */}
+          <div className="flex items-center gap-4 relative" ref={profileRef}>
+            {user && (
+              <>
+                <button
+                  onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                  className="flex items-center gap-2 group transition-all"
+                >
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/30 group-hover:border-primary bg-secondary flex items-center justify-center transition-all shadow-[0_0_10px_rgba(var(--primary-rgb),0.1)]">
+                    {user.image ? (
+                      <img
+                        src={user.image}
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Profile Dropdown Tab */}
+                {profileMenuOpen && (
+                  <div className="absolute top-12 right-0 z-[100] w-40 glass-card border border-white/10 rounded-none shadow-2xl shadow-black/50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+                    <div className="px-3 py-2.5 border-b border-white/10 bg-white/5">
+                      <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold mb-0.5">User</p>
+                      <p className="text-[11px] font-bold text-white truncate">{user.name}</p>
+                      <p className="text-[8px] text-muted-foreground mt-1 tracking-tight">Joined: {formatDate(user.registeredAt || user.createdAt || user.date)}</p>
+                    </div>
+                    <div className="p-0.5">
+                      <button
+                        onClick={onLogout}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[10px] text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all rounded-sm uppercase font-bold tracking-widest"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -251,23 +274,26 @@ const Dashboard = ({ user, onLogout }) => {
                 Manage and view all registered users across the platform.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Search Bar */}
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Search name, email, mobile..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                   className="input-dark h-10 pl-10 pr-4 w-full sm:w-64 text-sm border border-white/10 focus:border-primary/50"
                 />
               </div>
               {/* Date Filter */}
-              <DateRangePicker
-                value={dateRange}
-                onChange={(val) => { setDateRange(val || { start: null, end: null }); setCurrentPage(1); }}
-              />
+              <div className="w-full sm:w-auto">
+                <DateRangePicker
+                  className="w-full"
+                  value={dateRange}
+                  onChange={(val) => { setDateRange(val || { start: null, end: null }); setCurrentPage(1); }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -480,7 +506,7 @@ const Dashboard = ({ user, onLogout }) => {
                 {viewingUser.name || "Unknown"}
               </h4>
               <p className="text-sm text-muted-foreground">
-                {formatDate(viewingUser.createdAt || viewingUser.date)}
+                {formatDate(viewingUser.registeredAt || viewingUser.createdAt || viewingUser.date)}
               </p>
             </div>
 
