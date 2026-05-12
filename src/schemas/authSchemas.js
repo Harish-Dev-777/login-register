@@ -10,6 +10,7 @@ export const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   mobile: z.string().regex(/^[0-9]{10}$/, "Mobile number must be exactly 10 digits"),
   image: z.any().optional(),
+  pdfFile: z.any().optional(),
   password: z.string()
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Include one uppercase letter")

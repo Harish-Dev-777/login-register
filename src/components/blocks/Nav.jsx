@@ -1,5 +1,6 @@
 import React from "react";
 import { LogOut, User } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Nav = ({ user, onLogout }) => {
   const [scrolled, setScrolled] = React.useState(false);
@@ -123,68 +124,30 @@ const Nav = ({ user, onLogout }) => {
           ))}
         </ul>
 
-        {/* Mobile User Profile */}
+        {/* Mobile Dashboard Button */}
         {user && (
           <div
             className={`mt-12 flex flex-col items-center gap-4 relative z-10 transition-all duration-700 delay-[600ms] ${isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
           >
-            <div className="w-20 h-20 rounded-none overflow-hidden border border-primary/40 bg-secondary flex items-center justify-center">
-              {user.image ? (
-                <img
-                  src={user.image}
-                  alt={user.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-10 h-10 text-muted-foreground" />
-              )}
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-primary font-bold uppercase tracking-widest mb-1">
-                Signed in as
-              </p>
-              <span className="text-xl font-bold font-heading uppercase">
-                {user.name}
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                onLogout();
-                setIsOpen(false);
-              }}
-              className="mt-4 flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors uppercase text-xs font-bold tracking-[0.3em] border border-white/10 px-6 py-2"
+            <Link
+              to="/dashboard"
+              onClick={() => setIsOpen(false)}
+              className="btn-neon"
             >
-              <LogOut className="w-4 h-4" /> Logout
-            </button>
+              Dashboard
+            </Link>
           </div>
         )}
       </div>
-      {/* logined user profile and name */}
-      {/* Desktop User Profile */}
+      {/* Desktop Dashboard Button */}
       <div className="hidden md:flex items-center gap-3">
         {user ? (
-          <>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/30 bg-secondary flex items-center justify-center">
-                {user.image ? (
-                  <img
-                    src={user.image}
-                    alt={user.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-4 h-4 text-muted-foreground" />
-                )}
-              </div>
-              <span className="text-sm font-medium">{user.name}</span>
-            </div>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500 transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </>
+          <Link
+            to="/dashboard"
+            className="btn-neon py-2 px-6"
+          >
+            Dashboard
+          </Link>
         ) : null}
       </div>
     </nav>

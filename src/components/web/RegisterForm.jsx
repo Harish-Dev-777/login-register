@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, Camera, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Camera, Loader2, FileText } from "lucide-react"
 
 
 const RegisterForm = ({ onToggleView }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [imagePreview, setImagePreview] = useState(null)
+  const [pdfFile, setPdfFile] = useState(null)
+  const [pdfFileName, setPdfFileName] = useState(null)
   const [apiError, setApiError] = useState(null)
   const [allUsers, setAllUsers] = useState([])
 
@@ -76,7 +78,8 @@ const RegisterForm = ({ onToggleView }) => {
         email: data.email,
         mobile: data.mobile,
         password: data.password,
-        image: imagePreview
+        image: imagePreview,
+        pdfFile: pdfFile
       })
       console.log("[Register] Registration successful!")
 
@@ -87,6 +90,8 @@ const RegisterForm = ({ onToggleView }) => {
 
       reset()
       setImagePreview(null)
+      setPdfFile(null)
+      setPdfFileName(null)
       setTimeout(() => onToggleView(), 1500)
     } catch (err) {
       console.error("[Register] Error during registration:", err)
@@ -216,6 +221,47 @@ const RegisterForm = ({ onToggleView }) => {
                 }}
               />
               {errors.mobile && <p className="text-[10px] font-bold text-red-500 mt-1">{errors.mobile.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {/* PDF Upload */}
+              <div className="grid gap-1.5">
+                <Label className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-500">Upload PDF</Label>
+                <Label
+                  htmlFor="pdf-upload"
+                  className={`flex items-center gap-2 input-dark h-11 px-3 cursor-pointer hover:border-primary/50 transition-all duration-300 ${pdfFileName ? 'border-primary/30' : ''}`}
+                >
+                  <FileText className={`w-4 h-4 shrink-0 ${pdfFileName ? 'text-primary' : 'text-gray-500'}`} />
+                  <span className={`text-sm truncate ${pdfFileName ? 'text-white' : 'text-gray-700'}`}>
+                    {pdfFileName || 'Choose file'}
+                  </span>
+                </Label>
+                <input
+                  id="pdf-upload"
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0]
+                    if (file) {
+                      if (file.size > 10 * 1024 * 1024) {
+                        toast.warning("File Too Large", {
+                          description: "PDF must be under 10MB.",
+                          className: "glass-card border-red-500/20 text-white font-heading",
+                        })
+                        return
+                      }
+                      setPdfFileName(file.name)
+                      const reader = new FileReader()
+                      reader.onloadend = () => {
+                        setPdfFile(reader.result)
+                        console.log("[Register] PDF loaded. Length:", reader.result.length)
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

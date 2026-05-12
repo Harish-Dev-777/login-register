@@ -1,7 +1,9 @@
 import React, { useState } from "react"
+import { Routes, Route, useNavigate } from "react-router-dom"
 import LoginForm from "@/components/web/LoginForm"
 import RegisterForm from "@/components/web/RegisterForm"
 import BackButton from "@/components/web/BackButton"
+import Dashboard from "@/components/web/Dashboard"
 import { Toaster } from "sonner"
 import Hero from "./components/blocks/Hero"
 import Nav from "./components/blocks/Nav"
@@ -19,6 +21,7 @@ import Footer from "./components/blocks/Footer"
 const App = () => {
   const [view, setView] = useState("login") // "login", "register", or "home"
   const [user, setUser] = useState(null)
+  const navigate = useNavigate()
 
   const toggleView = () => {
     setView(view === "login" ? "register" : "login")
@@ -27,11 +30,13 @@ const App = () => {
   const handleLoginSuccess = (userData) => {
     setUser(userData)
     setView("home")
+    navigate("/")
   }
 
   const handleLogout = () => {
     setUser(null)
     setView("login")
+    navigate("/")
   }
 
   const handleBack = () => {
@@ -42,10 +47,8 @@ const App = () => {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
-      <Toaster position="bottom-right" theme="dark" richColors />
-
+  const HomeLayout = () => (
+    <>
       {/* Navbar — only visible after login */}
       {view === "home" && <Nav user={user} onLogout={handleLogout} />}
 
@@ -98,7 +101,16 @@ const App = () => {
           </div>
         </div>
       )}
+    </>
+  )
 
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
+      <Toaster position="bottom-right" theme="dark" richColors />
+      <Routes>
+        <Route path="/" element={<HomeLayout />} />
+        <Route path="/dashboard" element={<Dashboard user={user} onLogout={handleLogout} />} />
+      </Routes>
     </div>
   )
 }

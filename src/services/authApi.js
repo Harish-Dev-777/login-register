@@ -39,12 +39,17 @@ export const getAllUsers = async () => {
 
 /**
  * Post user data to the API.
- * @param {Object} userData - { name, email, mobile, password, image }
+ * @param {Object} userData - { name, email, mobile, password, image, pdfFile }
  * @returns {Promise} Axios response
  */
 export const registerUser = async (userData) => {
   console.log("[authApi] registerUser - Posting new user...")
   // Ensure we send field names the API expects
+  // Build the exact registration timestamp
+  const now = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  const registeredAt = `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+
   const payload = {
     name: userData.name,
     email: userData.email,
@@ -52,9 +57,38 @@ export const registerUser = async (userData) => {
     phone: userData.mobile, // Mapping mobile to phone just in case
     password: userData.password,
     confirmPassword: userData.password, // Some APIs expect this
-    profile: userData.image || ""
+    profile: userData.image || "",
+    pdfFile: userData.pdfFile || "",
+    registeredAt: registeredAt
   }
   const response = await axios.post(API_URL, payload)
   console.log("[authApi] registerUser - Response:", response.data)
+  return response
+}
+
+/**
+ * Update user data via the API.
+ * @param {string} id - The user ID
+ * @param {Object} userData - { name, email, mobile }
+ * @returns {Promise} Axios response
+ */
+export const updateUser = async (id, userData) => {
+  console.log(`[authApi] updateUser - Updating user ${id}...`)
+  const url = `${API_URL}/${id}`
+  const response = await axios.put(url, userData)
+  console.log("[authApi] updateUser - Response:", response.data)
+  return response
+}
+
+/**
+ * Delete a user via the API.
+ * @param {string} id - The user ID
+ * @returns {Promise} Axios response
+ */
+export const deleteUser = async (id) => {
+  console.log(`[authApi] deleteUser - Deleting user ${id}...`)
+  const url = `${API_URL}/${id}`
+  const response = await axios.delete(url)
+  console.log("[authApi] deleteUser - Response:", response.data)
   return response
 }
